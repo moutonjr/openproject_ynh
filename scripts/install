@@ -175,7 +175,7 @@ sudo -u postgres createdb -O $app $db_name
 #=================================================
 ynh_script_progression --message="Compiling OpenProject with NPM and RUBYGems..." --weight=1
 sudo -iu $app gem update --system
-sudo -iu $app gem install bundler puma
+sudo -iu $app gem install puma
 # TODO Remove if test success sudo -iu $app gem install bundler
 sudo -iu $app install --deployment --without development test therubyracer docker
 sudo -iu $app npm install
