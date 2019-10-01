@@ -1,5 +1,5 @@
 SOURCE_URL=https://github.com/opf/openproject/archive/v10.0.1.zip
-SOURCE_SUM=4ab886eb726af046f879977ff8cd014c4c6bd0ac
+SOURCE_SUM=72e1faaf1c6d7b96059e9bafbda7cb6948a946ac7481af0309b25c9a906c4dae
 SOURCE_FORMAT=zip
 SOURCE_IN_SUBDIR=true
 SOURCE_FILENAME=openproject-10.0.1.zip
