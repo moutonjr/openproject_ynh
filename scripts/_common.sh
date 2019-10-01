@@ -10,6 +10,16 @@ pkg_dependencies="zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-
 #=================================================
 # PERSONAL HELPERS
 #=================================================
+exec_as() {
+  local USER=$1
+  shift 1
+
+  if [[ $USER = $(whoami) ]]; then
+    eval "$@"
+  else
+    sudo -u "$USER" sh -c ". ~/.profile && $@"
+  fi
+}
 
 #=================================================
 # EXPERIMENTAL HELPERS

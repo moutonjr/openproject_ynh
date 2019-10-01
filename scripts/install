@@ -78,37 +78,38 @@ ynh_install_app_dependencies $pkg_dependencies
 ynh_script_progression --message="Setting up Rbenv and Nodenv..." --weight=1
 
 # 1: Ruby
-sudo -iu $app git clone -q https://github.com/rbenv/rbenv.git $_homedir/.rbenv
-sudo -iu $app git clone -q https://github.com/rbenv/ruby-build.git $_homedir/.rbenv/plugins/ruby-build
+exec_as $app git clone -q https://github.com/rbenv/rbenv.git $_homedir/.rbenv
+exec_as $app git clone -q https://github.com/rbenv/ruby-build.git $_homedir/.rbenv/plugins/ruby-build
 
 # 2: Node
-sudo -iu $app git clone -q https://github.com/nodenv/nodenv.git $_homedir/.nodenv
-sudo -iu $app git clone -q git://github.com/nodenv/node-build.git $_homedir/.nodenv/plugins/node-build
+exec_as $app git clone -q https://github.com/nodenv/nodenv.git $_homedir/.nodenv
+exec_as $app git clone -q git://github.com/nodenv/node-build.git $_homedir/.nodenv/plugins/node-build
 
 cat >> $_homedir/.profile << EOF
 export PATH="$_homedir/.nodenv/bin:$_homedir/.rbenv/bin:$PATH"
 eval "\$(rbenv init -)"
 eval "\$(nodenv init -)"
+RAILS_ENV="production"
 EOF
 
 chown $app: $_homedir/.profile
-sudo -iu $app bash $_homedir/.profile
+exec_as $app bash $_homedir/.profile
 
 ynh_script_progression --message="Setting up Ruby and Node..." --weight=1
 
 # 3: Ruby setup
-sudo -iu $app rbenv install 2.6.4 > /dev/null
-sudo -iu $app rbenv rehash
-sudo -iu $app rbenv global 2.6.4
+exec_as $app rbenv install 2.6.4 > /dev/null
+exec_as $app rbenv rehash
+exec_as $app rbenv global 2.6.4
 
 # 3: Node setup
-sudo -iu $app nodenv install 12.11.0 > /dev/null
-sudo -iu $app nodenv rehash
-sudo -iu $app nodenv global 12.11.0
+exec_as $app nodenv install 12.11.0 > /dev/null
+exec_as $app nodenv rehash
+exec_as $app nodenv global 12.11.0
 
 # Test result
-sudo -iu $app ruby --version >/dev/null 2>&1 || ynh_die "Ruby installation failed with rubyenv"
-sudo -iu $app node --version >/dev/null 2>&1 || ynh_die "Node installation failed with nodenv"
+exec_as $app ruby --version >/dev/null 2>&1 || ynh_die "Ruby installation failed with rubyenv"
+exec_as $app node --version >/dev/null 2>&1 || ynh_die "Node installation failed with nodenv"
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
@@ -134,7 +135,7 @@ db_pwd=$(ynh_string_random)	# Generate a random password
 ynh_app_setting_set --app=$app --key=db_name --value=$db_name
 db_user=$db_name
 ynh_script_progression --message="Configuring OpenProject..." --weight=1
-sudo -iu $app cat >> $final_path/config/database.yml << EOF
+exec_as $app cat >> $final_path/config/database.yml << EOF
 production:
   adapter: postgresql
   database: $db_name
@@ -147,7 +148,7 @@ EOF
 ynh_store_file_checksum --file="$final_path/config/database.yml"
 
 #TODO Not sure aout this email sending. To be tested.
-sudo -iu $app cat >> $final_path/config/configuration.yml << EOF
+exec_as $app cat >> $final_path/config/configuration.yml << EOF
 production:
   # Outgoing emails configuration (see examples above)
   email_delivery_method: :smtp
@@ -165,28 +166,28 @@ ynh_script_progression --message="Creating a PostgreSQL database..." --weight=1
 
 ynh_app_setting_set --app=$app --key=dbpwd --value=$db_pwd	# Store the password in the app's config
 
-sudo -u postgres psql -c "CREATE USER $app WITH PASSWORD '$db_pwd';"
-sudo -u postgres createdb -O $app $db_name
-
-
+ynh_exec_as postgres psql -c "CREATE USER $app WITH PASSWORD '$db_pwd';"
+ynh_exec_as postgres createdb -O $app $db_name
 
 #=================================================
 # RUBY POST-INSTALL
 #=================================================
 ynh_script_progression --message="Compiling OpenProject with NPM and RUBYGems..." --weight=1
-sudo -iu $app gem update --system
-sudo -iu $app gem install puma
-# TODO Remove if test success sudo -iu $app gem install bundler
-sudo -iu $app install --deployment --without development test therubyracer docker
-sudo -iu $app npm install
+
+exec_as $app gem update --system
+
+pushd $final_path
+exec_as $app gem install puma
+# TODO Remove if test success exec_as $app gem install bundler
+exec_as $app bundle install --deployment --without development test therubyracer docker
+exec_as $app npm install
 
 ynh_script_progression --message="Provisioning assets..." --weight=1
 
-pushd $final_path
-sudo -iu $app RAILS_ENV="production" ./bin/rake db:create
-sudo -iu $app RAILS_ENV="production" ./bin/rake db:migrate
-sudo -iu $app RAILS_ENV="production" ./bin/rake LOCALE=$language db:seed
-sudo -iu $app RAILS_ENV="production" ./bin/rake assets:precompile
+exec_as $app ./bin/rake db:create
+exec_as $app ./bin/rake db:migrate
+exec_as $app ./bin/rake LOCALE=$language db:seed
+exec_as $app ./bin/rake assets:precompile
 echo "export SECRET_KEY_BASE=$(./bin/rake secret)" >> /etc/environment
 . /etc/environment
 
