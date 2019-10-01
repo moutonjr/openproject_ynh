@@ -1,0 +1,72 @@
+{
+    "name": "OpenProject",
+    "id": "openproject",
+    "packaging_format": 1,
+    "description": {
+        "en": "OpenProject integration",
+        "fr": "Intégration de OpenProject"
+    },
+    "version": "1.0~ynh1",
+    "url": "https://github.com/opf/openproject",
+    "license": "free",
+    "maintainer": {
+        "name": "Moutonjr \"Geoff\"",
+        "email": "Moutonjr[at]jserv.fr",
+        "url": "http://jserv.fr"
+    },
+    "requirements": {
+        "yunohost": ">= 3.4"
+    },
+    "multi_instance": false,
+    "services": [
+        "nginx",
+        "php7.0-fpm",
+        "mysql"
+    ],
+    "arguments": {
+        "install" : [
+            {
+                "name": "domain",
+                "type": "domain",
+                "ask": {
+                    "en": "Choose a domain name for openproject",
+                    "fr": "Choisissez un nom de domaine pour openproject"
+                },
+                "example": "example.com"
+            },
+            {
+                "name": "path",
+                "type": "path",
+                "ask": {
+                    "en": "Choose a path for openproject",
+                    "fr": "Choisissez un chemin pour openproject"
+                },
+                "example": "/openproject",
+                "default": "/openproject"
+            },
+            {
+                "name": "is_public",
+                "type": "boolean",
+                "ask": {
+                    "en": "Is it a public application?",
+                    "fr": "Est-ce une application publique ?"
+                },
+                "default": true,
+								"help": {
+                    "en": "A public Openproject app could be less secure depending your configuration. Butit can allow external people from your Yunohost instance to participate to project management.",
+                    "fr": "Une instance publique de YunoHost peut-être moins sécurisée mais peut permettre à des personnes externes à l'instance YunoHost de participer à votre projet (invité)"
+								}
+            },
+            {
+                "name": "language",
+                "type": "string",
+                "ask": {
+                    "en": "Choose the application language",
+                    "fr": "Choisissez la langue de l'application"
+                },
+                "choices": ["fr", "en"],
+                "default": "fr"
+            }
+        ]
+    }
+}

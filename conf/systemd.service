@@ -1,0 +1,17 @@
+[Unit]
+Description=Launches Application server for OpenProject Rails project
+After=network.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__FINALPATH__/
+Environment=RAILS_ENV=production
+
+ExecStart=/usr/local/bin/bundle exec puma -t 5:5 -p ${PORT:-__PORT__} -e ${RACK_ENV:-production} >> /var/log/__APP__/__APP__.log 2>&1
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
