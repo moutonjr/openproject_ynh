@@ -169,7 +169,7 @@ ynh_store_file_checksum --file="$final_path/config/configuration.yml"
 ynh_script_progression --message="Creating a PostgreSQL database..." --weight=1
 
 ynh_psql_create_user "$db_user" "$db_pwd"
-ynh_psql_create_db "$db_name" "$db_user"
+ynh_psql_create_db "$db_name" "$db_user" "$db_pwd"
 
 #=================================================
 # RUBY POST-INSTALL
