@@ -11,7 +11,6 @@ export pkg_dependencies="zlib1g-dev build-essential libssl-dev libreadline-dev l
 # PERSONAL HELPERS
 #=================================================
 exec_as() {
-  ynh_print_info "exec_as $*"
   local USER=$1
   shift 1
 
