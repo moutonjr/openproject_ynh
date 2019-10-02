@@ -182,7 +182,7 @@ chmod u+rw -R "$final_path"
 
 pushd "$final_path"
 exec_as "$app" gem install bundler puma
-ynh_exec_as "$app" bundle install --deployment --without development test therubyracer docker
+ynh_exec_as "$app" $_homedir/.rbenv/shims/bundle install --deployment --without development test therubyracer docker
 exec_as "$app" npm install
 
 ynh_script_progression --message="Provisioning assets..." --weight=1
