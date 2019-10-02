@@ -11,16 +11,22 @@ source /usr/share/yunohost/helpers
 ynh_abort_if_errors
 
 #=================================================
-# RETRIEVE ARGUMENTS FROM THE MANIFEST
+# Dealing with script's variables
 #=================================================
-# TODO
+# Note: variables are stored in a single location to avoid confusion
+# and declaration sequencing issues.
+# Arguments from Manifest
 domain=$YNH_APP_ARG_DOMAIN
 path_url=$YNH_APP_ARG_PATH
 is_public=$YNH_APP_ARG_IS_PUBLIC
 language=$YNH_APP_ARG_LANGUAGE
 app=$YNH_APP_INSTANCE_NAME
 
-# Build home dir in install file
+# Installer variables
+db_name=$(ynh_sanitize_dbid --db_name="$app")
+db_pwd=$(ynh_string_random)	# Generate a random password
+db_user=$db_name
+final_path="/var/www/$app"
 _homedir="/var/$app/"
 
 # Find a free port.
@@ -28,30 +34,34 @@ _homedir="/var/$app/"
 # - By PUMA to fire app server listening to this port, and
 # - Nginx to proxify on this.
 port=$(ynh_find_port --port=6001)
-ynh_app_setting_set --app=$app --key=port --value=$port
 
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THESE ARGS
 #=================================================
 ynh_script_progression --message="Validating installation parameters..." --weight=1
 
-final_path=/var/www/$app
 test ! -e "$final_path" || ynh_die --message="This path already contains a folder"
 
 # Register (book) web path
-ynh_webpath_register --app=$app --domain=$domain --path_url=$path_url
+ynh_webpath_register --app="$app" --domain="$domain" --path_url="$path_url"
 
 #=================================================
 # STORE SETTINGS FROM MANIFEST
 #=================================================
 ynh_script_progression --message="Storing installation settings..." --weight=1
 
-#TODO
-ynh_app_setting_set --app=$app --key=domain --value=$domain
-ynh_app_setting_set --app=$app --key=path --value=$path_url
-ynh_app_setting_set --app=$app --key=is_public --value=$is_public
-ynh_app_setting_set --app=$app --key=language --value=$language
-ynh_app_setting_set --app=$app --key=homedir --value=$_homedir
+ynh_app_setting_set --app="$app" --key=db_name --value="$db_name"
+ynh_app_setting_set --app="$app" --key=db_pwd --value="$db_pwd"
+ynh_app_setting_set --app="$app" --key=domain --value="$domain"
+ynh_app_setting_set --app="$app" --key=final_path --value="$final_path"
+ynh_app_setting_set --app="$app" --key=homedir --value="$_homedir"
+ynh_app_setting_set --app="$app" --key=is_public --value="$is_public"
+ynh_app_setting_set --app="$app" --key=language --value="$language"
+ynh_app_setting_set --app="$app" --key=path --value="$path_url"
+ynh_app_setting_set --app="$app" --key=port --value="$port"
+
+# Make app public if necessary
+[ "$is_public" -eq 1 ] &&	ynh_app_setting_set --app="$app" --key=unprotected_uris --value="/"
 
 #=================================================
 # ENVIRONMENT SETUP
@@ -62,14 +72,14 @@ ynh_app_setting_set --app=$app --key=homedir --value=$_homedir
 # CREATE DEDICATED USER
 #=================================================
 ynh_script_progression --message="Configuring system user..." --weight=1
-ynh_system_user_create --username=$app --home_dir=$_homedir -s
+ynh_system_user_create --username="$app" --home_dir="$_homedir" -s
 
 #=================================================
 # INSTALL DEPENDENCIES
 #=================================================
 ynh_script_progression --message="Installing dependencies..." --weight=1
 
-ynh_install_app_dependencies $pkg_dependencies
+ynh_install_app_dependencies "$pkg_dependencies"
 
 
 #=================================================
@@ -78,44 +88,43 @@ ynh_install_app_dependencies $pkg_dependencies
 ynh_script_progression --message="Setting up Rbenv and Nodenv..." --weight=1
 
 # 1: Ruby
-exec_as $app git clone -q https://github.com/rbenv/rbenv.git $_homedir/.rbenv
-exec_as $app git clone -q https://github.com/rbenv/ruby-build.git $_homedir/.rbenv/plugins/ruby-build
+exec_as "$app" git clone -q https://github.com/rbenv/rbenv.git "$_homedir/.rbenv"
+exec_as "$app" git clone -q https://github.com/rbenv/ruby-build.git "$_homedir/.rbenv/plugins/ruby-build"
 
 # 2: Node
-exec_as $app git clone -q https://github.com/nodenv/nodenv.git $_homedir/.nodenv
-exec_as $app git clone -q git://github.com/nodenv/node-build.git $_homedir/.nodenv/plugins/node-build
+exec_as "$app" git clone -q https://github.com/nodenv/nodenv.git "$_homedir/.nodenv"
+exec_as "$app" git clone -q git://github.com/nodenv/node-build.git "$_homedir/.nodenv/plugins/node-build"
 
-cat >> $_homedir/.profile << EOF
+cat >> "$_homedir/.profile" << EOF
 export PATH="$_homedir/.nodenv/bin:$_homedir/.rbenv/bin:$PATH"
 eval "\$(rbenv init -)"
 eval "\$(nodenv init -)"
 RAILS_ENV="production"
 EOF
 
-chown $app: $_homedir/.profile
+chown "$app": "$_homedir/.profile"
 
 ynh_script_progression --message="Setting up Ruby and Node..." --weight=1
 
 # 3: Ruby setup
-exec_as $app rbenv install 2.6.4 > /dev/null
-exec_as $app rbenv rehash
-exec_as $app rbenv global 2.6.4
+exec_as "$app" rbenv install 2.6.4 > /dev/null
+exec_as "$app" rbenv rehash
+exec_as "$app" rbenv global 2.6.4
 
 # 3: Node setup
-exec_as $app nodenv install 12.11.0 > /dev/null
-exec_as $app nodenv rehash
-exec_as $app nodenv global 12.11.0
+exec_as "$app" nodenv install 12.11.0 > /dev/null
+exec_as "$app" nodenv rehash
+exec_as "$app" nodenv global 12.11.0
 
 # Test result
-exec_as $app ruby --version >/dev/null 2>&1 || ynh_die "Ruby installation failed with rubyenv"
-exec_as $app node --version >/dev/null 2>&1 || ynh_die "Node installation failed with nodenv"
+exec_as "$app" ruby --version >/dev/null 2>&1 || ynh_die "Ruby installation failed with rubyenv"
+exec_as "$app" node --version >/dev/null 2>&1 || ynh_die "Node installation failed with nodenv"
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
 ynh_script_progression --message="Setting up source files..." --weight=1
 
-ynh_app_setting_set --app=$app --key=final_path --value=$final_path
 # Download, check integrity, uncompress and patch the source from app.src
 ynh_setup_source --dest_dir="$final_path"
 
@@ -129,12 +138,8 @@ ynh_add_nginx_config
 #=================================================
 # OPENPROJECT CONFIGURATION
 #=================================================
-db_name=$(ynh_sanitize_dbid --db_name=$app)
-db_pwd=$(ynh_string_random)	# Generate a random password
-ynh_app_setting_set --app=$app --key=db_name --value=$db_name
-db_user=$db_name
 ynh_script_progression --message="Configuring OpenProject..." --weight=1
-exec_as $app cat >> $final_path/config/database.yml << EOF
+exec_as "$app" cat >> "$final_path/config/database.yml" << EOF
 production:
   adapter: postgresql
   database: $db_name
@@ -147,7 +152,7 @@ EOF
 ynh_store_file_checksum --file="$final_path/config/database.yml"
 
 #TODO Not sure aout this email sending. To be tested.
-exec_as $app cat >> $final_path/config/configuration.yml << EOF
+exec_as "$app" cat >> "$final_path/config/configuration.yml" << EOF
 production:
   # Outgoing emails configuration (see examples above)
   email_delivery_method: :smtp
@@ -163,31 +168,29 @@ ynh_store_file_checksum --file="$final_path/config/configuration.yml"
 #=================================================
 ynh_script_progression --message="Creating a PostgreSQL database..." --weight=1
 
-ynh_app_setting_set --app=$app --key=dbpwd --value=$db_pwd	# Store the password in the app's config
-
-ynh_exec_as postgres psql -c "CREATE USER $app WITH PASSWORD '$db_pwd';"
-ynh_exec_as postgres createdb -O $app $db_name
+ynh_psql_create_user "$db_user" "$db_pwd"
+ynh_psql_create_db "$db_name" "$db_user"
 
 #=================================================
 # RUBY POST-INSTALL
 #=================================================
 ynh_script_progression --message="Compiling OpenProject with NPM and RUBYGems..." --weight=1
 
-exec_as $app gem update --system
+exec_as "$app" gem update --system
 
-pushd $final_path
-exec_as $app gem install puma
-# TODO Remove if test success exec_as $app gem install bundler
-exec_as $app bundle install --deployment --without development test therubyracer docker
-exec_as $app npm install
+pushd "$final_path"
+exec_as "$app" gem install puma
+exec_as "$app" bundle install --deployment --without development test therubyracer docker
+exec_as "$app" npm install
 
 ynh_script_progression --message="Provisioning assets..." --weight=1
 
-exec_as $app ./bin/rake db:create
-exec_as $app ./bin/rake db:migrate
-exec_as $app ./bin/rake LOCALE=$language db:seed
-exec_as $app ./bin/rake assets:precompile
-echo "export SECRET_KEY_BASE=$(./bin/rake secret)" >> /etc/environment
+exec_as "$app" ./bin/rake db:create
+exec_as "$app" ./bin/rake db:migrate
+exec_as "$app" ./bin/rake LOCALE="$language" db:seed
+exec_as "$app" ./bin/rake assets:precompile
+# shellcheck disable=SC2016
+exec_as "$app" 'echo "export SECRET_KEY_BASE=$(./bin/rake secret)"' >> /etc/environment
 . /etc/environment
 
 chmod o+x .
@@ -211,7 +214,7 @@ ynh_add_systemd_config
 ###
 #### Set the app as temporarily public for curl call
 ###ynh_script_progression --message="Configuring SSOwat..." --weight=1
-###ynh_app_setting_set --app=$app --key=skipped_uris --value="/"
+###ynh_app_setting_set --app="$app" --key=skipped_uris --value="/"
 #### Reload SSOwat config
 ###yunohost app ssowatconf
 ###
@@ -225,7 +228,7 @@ ynh_add_systemd_config
 #### Remove the public access
 ###if [ $is_public -eq 0 ]
 ###then
-###	ynh_app_setting_delete --app=$app --key=skipped_uris
+###	ynh_app_setting_delete --app="$app" --key=skipped_uris
 ###fi
 
 #=================================================
@@ -236,11 +239,11 @@ ynh_script_progression --message="Configuring log rotation..." --weight=1
 ynh_use_logrotate
 
 # ADVERTISE SERVICE IN ADMIN PANEL
-yunohost service add $app --log "/var/log/$app/$app.log"
+yunohost service add "$app" --log "/var/log/$app/$app.log"
 
 # START SYSTEMD SERVICE
 ynh_script_progression --message="Starting a systemd service..." --weight=1
-ynh_systemd_action --service_name=$app --action="start" --log_path="/var/log/$app/$app.log"
+ynh_systemd_action --service_name="$app" --action="start" --log_path="/var/log/$app/$app.log"
 
 # SETUP FAIL2BAN
 ynh_script_progression --message="Configuring fail2ban..." --weight=1
@@ -253,12 +256,6 @@ ynh_add_fail2ban_config --logpath="/var/log/nginx/${domain}-error.log" --failreg
 #=================================================
 ynh_script_progression --message="Configuring SSOwat..." --weight=1
 
-# Make app public if necessary
-if [ $is_public -eq 1 ]
-then
-	# unprotected_uris allows SSO credentials to be passed anyway.
-	ynh_app_setting_set --app=$app --key=unprotected_uris --value="/"
-fi
 
 #=================================================
 # RELOAD NGINX

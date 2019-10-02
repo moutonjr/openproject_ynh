@@ -16,11 +16,9 @@ ynh_script_progression --message="Loading installation settings..."  --weight=1
 
 app=$YNH_APP_INSTANCE_NAME
 
-domain=$(ynh_app_setting_get --app=$app --key=domain)
-port=$(ynh_app_setting_get --app=$app --key=port)
-db_name=$(ynh_app_setting_get --app=$app --key=db_name)
+db_name=$(ynh_app_setting_get --app="$app" --key=db_name)
 db_user=$db_name
-final_path=$(ynh_app_setting_get --app=$app --key=final_path)
+final_path=$(ynh_app_setting_get --app="$app" --key=final_path)
 
 _homedir=/var/$app
 
@@ -31,10 +29,10 @@ _homedir=/var/$app
 #=================================================
 
 # Remove a service from the admin panel, added by `yunohost service add`
-if ynh_exec_warn_less yunohost service status $app >/dev/null
+if ynh_exec_warn_less yunohost service status "$app" >/dev/null
 then
 	ynh_script_progression --message="Removing $app service..."  --weight=1
-	yunohost service remove $app
+	yunohost service remove "$app"
 fi
 
 #=================================================
@@ -51,11 +49,8 @@ ynh_remove_systemd_config
 ynh_script_progression --message="Removing the PostgreSQL database..."  --weight=1
 
 # Remove a database if it exists, along with the associated user
-[ -z $db_name ] || ynh_exec_as postgres dropdb $db_name
-
-# If DBMS is empty, remove it.
-_remaining_databases=$(sudo -iu postgres psql -l | grep "^(" | sed "s/^(\([^ ]*\) .*/\1/")
-[ $_remaining_databases -lt 3 ] && apt remove postgresql postgresq-contribl
+ynh_psql_drop_db "$db_name"
+ynh_psql_drop_user "$db_user"
 
 #=================================================
 # REMOVE DEPENDENCIES
@@ -106,7 +101,7 @@ ynh_remove_fail2ban_config
 ynh_script_progression --message="Removing the dedicated system user..."  --weight=1
 
 # Delete a system user
-ynh_system_user_delete --username=$app
+ynh_system_user_delete --username="$app"
 
 #=================================================
 # END OF SCRIPT

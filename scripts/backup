@@ -7,7 +7,7 @@
 #=================================================
 
 #Keep this path for calling _common.sh inside the execution's context of backup and restore scripts
-source ../settings/scripts/_common.sh
+source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
@@ -24,9 +24,9 @@ ynh_script_progression --message="Loading installation settings..." --time --wei
 
 app=$YNH_APP_INSTANCE_NAME
 
-final_path=$(ynh_app_setting_get --app=$app --key=final_path)
-domain=$(ynh_app_setting_get --app=$app --key=domain)
-db_name=$(ynh_app_setting_get --app=$app --key=db_name)
+final_path=$(ynh_app_setting_get --app="$app" --key=final_path)
+domain=$(ynh_app_setting_get --app="$app" --key=domain)
+db_name=$(ynh_app_setting_get --app="$app" --key=db_name)
 
 #=================================================
 # STANDARD BACKUP STEPS
@@ -35,7 +35,7 @@ db_name=$(ynh_app_setting_get --app=$app --key=db_name)
 #=================================================
 ynh_script_progression --message="Stopping a systemd service..." --time --weight=1
 
-ynh_systemd_action --service_name=$app --action="stop" --log_path="/var/log/$app/$app.log"
+ynh_systemd_action --service_name="$app" --action="stop" --log_path="/var/log/$app/$app.log"
 
 #=================================================
 # BACKUP THE APP MAIN DIR
@@ -56,7 +56,7 @@ ynh_backup --src_path="/etc/nginx/conf.d/$domain.d/$app.conf"
 #=================================================
 ynh_script_progression --message="Backing up the PostgreSQL database..." --time --weight=1
 
-sudo -u postgres pg_dump $db_name > db.postgres
+ynh_psql_dump_db -d "$db_name" > db.postgres
 
 #=================================================
 # BACKUP FAIL2BAN CONFIGURATION
@@ -87,7 +87,7 @@ ynh_backup --src_path="/etc/systemd/system/$app.service"
 #=================================================
 ynh_script_progression --message="Starting a systemd service..." --time --weight=1
 
-ynh_systemd_action --service_name=$app --action="start" --log_path="/var/log/$app/$app.log"
+ynh_systemd_action --service_name="$app" --action="start" --log_path="/var/log/$app/$app.log"
 
 #=================================================
 # END OF SCRIPT

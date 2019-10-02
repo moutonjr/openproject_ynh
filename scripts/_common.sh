@@ -5,20 +5,20 @@
 #=================================================
 
 # dependencies used by the app
-pkg_dependencies="zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libgdbm-dev libncurses5-dev automake libtool bison libffi-dev git curl poppler-utils unrtf tesseract-ocr catdoc libxml2 libxml2-dev libxslt1-dev memcached rbenv postgresql postgresql-contrib libpq-dev apt-transport-https ca-certificates nginx"
+export pkg_dependencies="zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libgdbm-dev libncurses5-dev automake libtool bison libffi-dev git curl poppler-utils unrtf tesseract-ocr catdoc libxml2 libxml2-dev libxslt1-dev memcached rbenv postgresql postgresql-contrib libpq-dev apt-transport-https ca-certificates nginx"
 
 #=================================================
 # PERSONAL HELPERS
 #=================================================
 exec_as() {
-  echo "exec_as $@"
+  ynh_print_info "exec_as $*"
   local USER=$1
   shift 1
 
   if [[ $USER = $(whoami) ]]; then
     eval "$@"
   else
-    sudo -u "$USER" sh -c ". ~/.profile && $@"
+    sudo -u "$USER" sh -c ". ~/.profile && $*"
   fi
 }
 
