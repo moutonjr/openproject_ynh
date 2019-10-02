@@ -93,7 +93,6 @@ RAILS_ENV="production"
 EOF
 
 chown $app: $_homedir/.profile
-exec_as $app bash $_homedir/.profile
 
 ynh_script_progression --message="Setting up Ruby and Node..." --weight=1
 

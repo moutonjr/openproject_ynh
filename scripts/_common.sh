@@ -11,6 +11,7 @@ pkg_dependencies="zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-
 # PERSONAL HELPERS
 #=================================================
 exec_as() {
+  echo "exec_as $@"
   local USER=$1
   shift 1
 
