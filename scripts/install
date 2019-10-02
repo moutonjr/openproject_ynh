@@ -177,6 +177,9 @@ ynh_script_progression --message="Compiling OpenProject with NPM and RUBYGems...
 
 exec_as "$app" gem update --system
 
+chown "$app": -R "$final_path"
+chmod u+rw -R "$final_path"
+
 pushd "$final_path"
 exec_as "$app" gem install puma
 exec_as "$app" bundle install --deployment --without development test therubyracer docker
