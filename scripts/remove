@@ -49,8 +49,7 @@ ynh_remove_systemd_config
 ynh_script_progression --message="Removing the PostgreSQL database..."  --weight=1
 
 # Remove a database if it exists, along with the associated user
-ynh_psql_drop_db "$db_name"
-ynh_psql_drop_user "$db_user"
+ynh_psql_remove_db "$db_name" "$db_user"
 
 #=================================================
 # REMOVE DEPENDENCIES
