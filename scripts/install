@@ -81,8 +81,8 @@ ynh_system_user_create --username="$app" --home_dir="$_homedir" -s
 ynh_script_progression --message="Installing OpenProject & its dependencies..." --weight=1
 
 # Add Openproject Key & repo
-wget -qO- https://dl.packager.io/srv/opf/openproject/key | sudo apt-key add -
-wget -O /etc/apt/sources.list.d/openproject.list  https://dl.packager.io/srv/opf/openproject/stable/10/installer/debian/9.repo
+wget -qO- https://dl.packager.io/srv/opf/openproject/key | sudo apt-key add - >/dev/null
+wget -qO /etc/apt/sources.list.d/openproject.list  https://dl.packager.io/srv/opf/openproject/stable/10/installer/debian/9.repo
 
 ynh_install_app_dependencies "$pkg_dependencies"
 
@@ -175,7 +175,9 @@ yunohost service add "$app" --log "/var/log/$app/$app.log"
 
 # START SYSTEMD SERVICE
 ynh_script_progression --message="Starting a systemd service..." --weight=1
-ynh_systemd_action --service_name="$app" --action="start" --log_path="/var/log/$app/$app.log"
+# Compat YNH<3.5
+#ynh_systemd_action --service_name="$app" --action="start" --log_path="/var/log/$app/$app.log"
+systemctl restart openproject.service
 
 # SETUP FAIL2BAN
 ynh_script_progression --message="Configuring fail2ban..." --weight=1
@@ -194,7 +196,7 @@ ynh_script_progression --message="Configuring SSOwat..." --weight=1
 #=================================================
 ynh_script_progression --message="Reloading nginx web server..." --weight=1
 
-ynh_systemd_action --service_name=nginx --action=reload
+systemctl reload nginx.service
 
 #=================================================
 # END OF SCRIPT
