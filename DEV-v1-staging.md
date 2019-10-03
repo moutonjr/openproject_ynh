@@ -12,8 +12,8 @@ Package will be in v1 and in "working" conditions in Yunohost-Apps when:
 - [ ] Measure timing of installer to bring proper weight
 
 And some breadcrumbs:
-- [ ] change way to install ruby with crappy `rbenv`
-- [ ] Remove: if the PostgreSQL is empty, remove it
+- [x] change way to install ruby with crappy `rbenv`
+- [x] Remove: if the PostgreSQL is empty, remove it ==> NOT APPLICABLE ANYMORE
 - [ ] fully remove `/var/$app` (ynh helper crappy?)
 
 Goal of full-quality :)
