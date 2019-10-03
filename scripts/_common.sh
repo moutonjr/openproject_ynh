@@ -5,37 +5,15 @@
 #=================================================
 
 # dependencies used by the app
-export pkg_dependencies="zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libgdbm-dev libncurses5-dev automake libtool bison libffi-dev git curl poppler-utils unrtf tesseract-ocr catdoc libxml2 libxml2-dev libxslt1-dev memcached rbenv postgresql postgresql-contrib libpq-dev apt-transport-https ca-certificates nginx"
+export pkg_dependencies="apt-transport-https memcached openproject postgresql postgresql-common"
 
 #=================================================
 # PERSONAL HELPERS
 #=================================================
-exec_as() {
-  local USER=$1
-  shift 1
-
-  if [[ $USER = $(whoami) ]]; then
-    eval "$@"
-  else
-    sudo -u "$USER" sh -c ". ~/.profile && $*"
-  fi
-}
 
 #=================================================
 # EXPERIMENTAL HELPERS
 #=================================================
-# Execute a command as another user
-# usage: exec_as USER COMMAND [ARG ...]
-ynh_exec_as() {
-  local USER=$1
-  shift 1
-
-  if [[ $USER = $(whoami) ]]; then
-    eval "$@"
-  else
-    sudo -u "$USER" "$@"
-  fi
-}
 
 #=================================================
 # FUTURE OFFICIAL HELPERS

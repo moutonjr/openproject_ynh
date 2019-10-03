@@ -28,12 +28,13 @@ db_pwd=$(ynh_string_random)	# Generate a random password
 db_user=$db_name
 final_path="/var/www/$app"
 _homedir="/var/$app/"
+openproject_install_dat="/etc/openproject/installer.dat"
 
 # Find a free port.
 # This will only be used:
-# - By PUMA to fire app server listening to this port, and
+# - By OpenProject to fire app server listening to this port, and
 # - Nginx to proxify on this.
-port=$(ynh_find_port --port=6001)
+port=$(ynh_find_port --port=6000)
 
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THESE ARGS
@@ -66,7 +67,7 @@ ynh_app_setting_set --app="$app" --key=port --value="$port"
 #=================================================
 # ENVIRONMENT SETUP
 #=================================================
-# Note: it follows: https://github.com/opf/openproject/blob/stable/10/docs/installation/manual/README.md
+# Note: it follows: https://www.openproject.org/download-and-installation/
 
 #=================================================
 # CREATE DEDICATED USER
@@ -77,56 +78,13 @@ ynh_system_user_create --username="$app" --home_dir="$_homedir" -s
 #=================================================
 # INSTALL DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Installing dependencies..." --weight=1
+ynh_script_progression --message="Installing OpenProject & its dependencies..." --weight=1
+
+# Add Openproject Key & repo
+wget -qO- https://dl.packager.io/srv/opf/openproject/key | sudo apt-key add -
+wget -O /etc/apt/sources.list.d/openproject.list  https://dl.packager.io/srv/opf/openproject/stable/10/installer/debian/9.repo
 
 ynh_install_app_dependencies "$pkg_dependencies"
-
-
-#=================================================
-# SETUP PROPER RUBY & NODE ENVIRONMENT
-#=================================================
-ynh_script_progression --message="Setting up Rbenv and Nodenv..." --weight=1
-
-# 1: Ruby
-exec_as "$app" git clone -q https://github.com/rbenv/rbenv.git "$_homedir/.rbenv"
-exec_as "$app" git clone -q https://github.com/rbenv/ruby-build.git "$_homedir/.rbenv/plugins/ruby-build"
-
-# 2: Node
-exec_as "$app" git clone -q https://github.com/nodenv/nodenv.git "$_homedir/.nodenv"
-exec_as "$app" git clone -q git://github.com/nodenv/node-build.git "$_homedir/.nodenv/plugins/node-build"
-
-cat >> "$_homedir/.profile" << EOF
-export PATH="$_homedir/.nodenv/bin:$_homedir/.rbenv/bin:$PATH"
-eval "\$(rbenv init -)"
-eval "\$(nodenv init -)"
-RAILS_ENV="production"
-EOF
-
-chown "$app": "$_homedir/.profile"
-
-ynh_script_progression --message="Setting up Ruby and Node..." --weight=1
-
-# 3: Ruby setup
-exec_as "$app" rbenv install 2.6.4 > /dev/null
-exec_as "$app" rbenv rehash
-exec_as "$app" rbenv global 2.6.4
-
-# 3: Node setup
-exec_as "$app" nodenv install 12.11.0 > /dev/null
-exec_as "$app" nodenv rehash
-exec_as "$app" nodenv global 12.11.0
-
-# Test result
-exec_as "$app" ruby --version >/dev/null 2>&1 || ynh_die "Ruby installation failed with rubyenv"
-exec_as "$app" node --version >/dev/null 2>&1 || ynh_die "Node installation failed with nodenv"
-
-#=================================================
-# DOWNLOAD, CHECK AND UNPACK SOURCE
-#=================================================
-ynh_script_progression --message="Setting up source files..." --weight=1
-
-# Download, check integrity, uncompress and patch the source from app.src
-ynh_setup_source --dest_dir="$final_path"
 
 #=================================================
 # NGINX CONFIGURATION
@@ -139,29 +97,29 @@ ynh_add_nginx_config
 # OPENPROJECT CONFIGURATION
 #=================================================
 ynh_script_progression --message="Configuring OpenProject..." --weight=1
-exec_as "$app" cat >> "$final_path/config/database.yml" << EOF
-production:
-  adapter: postgresql
-  database: $db_name
-  host: localhost
-  username: $db_user
-  password: $db_pwd
-  encoding: unicode
-  pool: 5
-EOF
-ynh_store_file_checksum --file="$final_path/config/database.yml"
 
-#TODO Not sure aout this email sending. To be tested.
-exec_as "$app" cat >> "$final_path/config/configuration.yml" << EOF
-production:
-  # Outgoing emails configuration (see examples above)
-  email_delivery_method: :smtp
-  smtp_address: localhost
-  smtp_port: 25
-  smtp_domain: $domain
-rails_cache_store: :memcache
+#TODO Not sure about this email sending. To be tested.
+cat >> "$_openproject_install_dat" << EOF
+postgres/autoinstall reuse
+postgres/db_host 127.0.0.1
+postgres/db_port 5432
+postgres/db_username $db_user
+postgres/db_password $db_pwd
+postgres/db_name $db_name
+server/autoinstall skip
+smtp/autoinstall smtp
+smtp/authentication none
+smtp/host 127.0.0.1
+smtp/port 25
+smtp/domain $domain
+smtp/admin_email admin@$domain
+memcached/autoinstall install
+
+server/hostname $domain
+server/ssl no
 EOF
-ynh_store_file_checksum --file="$final_path/config/configuration.yml"
+
+ynh_store_file_checksum --file="$_openproject_install_dat"
 
 #=================================================
 # CREATE A POSTGRESQL DATABASE
@@ -171,41 +129,13 @@ ynh_script_progression --message="Creating a PostgreSQL database..." --weight=1
 ynh_psql_create_db "$db_name" "$db_user" "$db_pwd"
 
 #=================================================
-# RUBY POST-INSTALL
+# OPENPROJECT POST-INSTALL
 #=================================================
-ynh_script_progression --message="Compiling OpenProject with NPM and RUBYGems..." --weight=1
+# Note: This section is undocumented on the installer.
 
-exec_as "$app" gem update --system
+ynh_script_progression --message="Post-install of OpenProject" --weight=1
 
-chown "$app": -R "$final_path"
-chmod u+rw -R "$final_path"
-
-pushd "$final_path"
-exec_as "$app" gem install bundler puma --force
-ynh_exec_as "$app" bundle install --deployment --without development test therubyracer docker
-exec_as "$app" npm install
-
-ynh_script_progression --message="Provisioning assets..." --weight=1
-
-exec_as "$app" ./bin/rake db:create
-exec_as "$app" ./bin/rake db:migrate
-exec_as "$app" ./bin/rake LOCALE="$language" db:seed
-exec_as "$app" ./bin/rake assets:precompile
-# shellcheck disable=SC2016
-exec_as "$app" 'echo "export SECRET_KEY_BASE=$(./bin/rake secret)"' >> /etc/environment
-. /etc/environment
-
-chmod o+x .
-
-popd
-
-
-#=================================================
-# SETUP SYSTEMD
-#=================================================
-ynh_script_progression --message="Configuring a systemd service..." --weight=1
-
-ynh_add_systemd_config
+openproject configure
 
 ####=================================================
 #### SETUP APPLICATION WITH CURL
