@@ -28,7 +28,7 @@ db_pwd=$(ynh_string_random)	# Generate a random password
 db_user=$db_name
 final_path="/var/www/$app"
 _homedir="/var/$app/"
-openproject_install_dat="/etc/openproject/installer.dat"
+_openproject_install_dat="/etc/openproject/installer.dat"
 
 # Find a free port.
 # This will only be used:
