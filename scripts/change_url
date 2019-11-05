@@ -29,6 +29,8 @@ ynh_script_progression --message="Loading installation settings..." --time --wei
 # Needed for helper "ynh_add_nginx_config"
 final_path=$(ynh_app_setting_get --app="$app" --key=final_path)
 export final_path
+port=$(ynh_app_setting_get --app="$app" --key=port)
+export port
 
 #=================================================
 # CHECK WHICH PARTS SHOULD BE CHANGED

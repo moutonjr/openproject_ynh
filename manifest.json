@@ -15,7 +15,7 @@
         "url": "http://jserv.fr"
     },
     "requirements": {
-        "yunohost": ">= 3.4"
+        "yunohost": ">= 3.6"
     },
     "multi_instance": false,
     "services": [

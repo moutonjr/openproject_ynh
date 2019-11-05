@@ -30,11 +30,6 @@ final_path="/var/www/$app"
 _homedir="/var/$app/"
 _openproject_install_dat="/etc/openproject/installer.dat"
 
-# Find a free port.
-# This will only be used:
-# - By OpenProject to fire app server listening to this port, and
-# - Nginx to proxify on this.
-port=$(ynh_find_port --port=6000)
 
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THESE ARGS
@@ -42,6 +37,12 @@ port=$(ynh_find_port --port=6000)
 ynh_script_progression --message="Validating installation parameters..." --weight=1
 
 test ! -e "$final_path" || ynh_die --message="This path already contains a folder"
+
+# Find a free port.
+# This will only be used:
+# - By OpenProject to fire app server listening to this port, and
+# - Nginx to proxify on this.
+port=$(ynh_find_port --port=6000)
 
 # Register (book) web path
 ynh_webpath_register --app="$app" --domain="$domain" --path_url="$path_url"
@@ -82,10 +83,10 @@ ynh_script_progression --message="Installing OpenProject & its dependencies..." 
 
 # Add Openproject Key & repo
 # Var APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE to disable the STDOUT redirection warning
-wget -qO- https://dl.packager.io/srv/opf/openproject/key | sudo APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add - >/dev/null
-wget -qO /etc/apt/sources.list.d/openproject.list  https://dl.packager.io/srv/opf/openproject/stable/10/installer/debian/9.repo
+wget -qO- https://dl.packager.io/srv/opf/openproject/key | APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add - >/dev/null
+wget -qO /etc/apt/sources.list.d/openproject.list https://dl.packager.io/srv/opf/openproject/stable/10/installer/debian/9.repo
 
-ynh_install_app_dependencies "$pkg_dependencies"
+ynh_install_app_dependencies "$pkg_dependencies" >> "$YNH_STDINFO"
 
 #=================================================
 # NGINX CONFIGURATION
@@ -123,7 +124,7 @@ EOF
 ynh_store_file_checksum --file="$_openproject_install_dat"
 
 
-ynh_replace_string --match_string=".*PORT=.*" --replace_string="export port=$port" --target_file="/etc/default/openproject"
+ynh_replace_string --match_string=".*PORT=.*" --replace_string="export PORT=$port" --target_file="/etc/default/openproject"
 
 #=================================================
 # CREATE A POSTGRESQL DATABASE
@@ -140,7 +141,7 @@ ynh_psql_create_db "$db_name" "$db_user" "$db_pwd"
 
 ynh_script_progression --message="Post-install of OpenProject" --weight=1
 
-openproject configure
+openproject configure >> "$YNH_STDINFO"
 
 ####=================================================
 #### SETUP APPLICATION WITH CURL
